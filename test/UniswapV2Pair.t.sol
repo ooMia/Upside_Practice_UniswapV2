@@ -147,13 +147,13 @@ contract PairTest is Test {
     //token0 in -> token1 out
     function test_swap0() public {
         setupSwap();
-        user.push(token0, 4 ether);
-        user.swap(0, 1 ether, address(callee1), "");
-        
-        (uint112 reserve0, uint112 reserve1, ) = pair.getReserves();
-        console.log(reserve0, reserve1);
+        user.push(token0, 1 ether); // token need for swap
+        // expect 1.662497915624478906 ether of token1
+        user.swap(0 ether, 1.662497915624478906 ether, address(user), "");
 
+        (uint112 reserve0, uint112 reserve1, ) = pair.getReserves(); // force update
 
+        // 6 * (10 - 1.662497915624478906) is approximately 50 ether
         assertEq(uint256(reserve0), 6 ether);
         assertEq(uint256(reserve1), 10 ether - 1.662497915624478906 ether);
 
@@ -172,6 +172,7 @@ contract PairTest is Test {
         setupSwap();
         deal(address(token1), address(user), 1 ether);
         user.push(token1, 1 ether);
+        user.swap(0.045330544694007456 ether, 0 ether, address(user), "");
 
         (uint112 reserve0, uint112 reserve1, ) = pair.getReserves();
         assertEq(uint256(reserve0), 5 ether - 0.045330544694007456 ether);
@@ -192,11 +193,25 @@ contract PairTest is Test {
 
     function test_optimistic_swap() public {
         setupSwap();
+        user.push(token0, 1 ether);
+        user.swap(
+            0 ether,
+            1.662497915624478906 ether,
+            address(callee0),
+            "0x00"
+        );
         assertEq(callee0.check(), true);
     }
 
     function test_fail_reentrant_optimistic_swap() public {
         setupSwap();
+        user.push(token0, 1 ether);
         vm.expectRevert(bytes("UniswapV2: LOCKED"));
+        user.swap(
+            0 ether,
+            1.662497915624478906 ether,
+            address(callee1),
+            abi.encodeWithSignature("swap(uint256,uint256,address,bytes)")
+        );
     }
 }
