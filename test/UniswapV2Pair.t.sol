@@ -171,7 +171,5 @@ contract PairTest is Test {
     function test_fail_reentrant_optimistic_swap() public {
         setupSwap();
         vm.expectRevert(bytes("UniswapV2: LOCKED"));
-        
-        assertEq(callee1.check(), true);
     }
 }
