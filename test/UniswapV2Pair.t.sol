@@ -31,13 +31,19 @@ contract User {
         pair.burn(address(this));
     }
 
-    function swap(uint256 amount0Out, uint256 amount1Out, address to, bytes memory data) public {
+    function swap(
+        uint256 amount0Out,
+        uint256 amount1Out,
+        address to,
+        bytes memory data
+    ) public {
         pair.swap(amount0Out, amount1Out, to, data);
     }
 }
 
 contract Callee0 {
     bool public check;
+
     function uniswapV2Call(address, uint256, uint256, bytes calldata) external {
         UniswapV2Pair pair = UniswapV2Pair(msg.sender);
         address token0 = pair.token0();
@@ -48,7 +54,13 @@ contract Callee0 {
 
 contract Callee1 {
     bool public check;
-    function uniswapV2Call(address, uint256 amount0, uint256 amount1, bytes calldata) external {
+
+    function uniswapV2Call(
+        address,
+        uint256 amount0,
+        uint256 amount1,
+        bytes calldata
+    ) external {
         UniswapV2Pair(msg.sender).swap(amount0, amount1, address(this), "");
         check = true;
     }
@@ -67,7 +79,9 @@ contract PairTest is Test {
         ERC20 tokenA = new ERC20("tst-0", "TST-0");
         ERC20 tokenB = new ERC20("tst-1", "TST-1");
         factory = new UniswapV2Factory(address(this));
-        pair = UniswapV2Pair(factory.createPair(address(tokenA), address(tokenB)));
+        pair = UniswapV2Pair(
+            factory.createPair(address(tokenA), address(tokenB))
+        );
         token0 = ERC20(pair.token0());
         token1 = ERC20(pair.token1());
         user = new User(pair);
@@ -98,7 +112,7 @@ contract PairTest is Test {
     function test_initial_join() public {
         giftSome();
         addLiquidity(1000, 4000);
-        (uint112 reserve0, uint112 reserve1,) = pair.getReserves();
+        (uint112 reserve0, uint112 reserve1, ) = pair.getReserves();
         assertEq(uint256(reserve0), 1000);
         assertEq(uint256(reserve1), 4000);
         assertEq(token0.balanceOf(address(pair)), 1000);
@@ -107,13 +121,14 @@ contract PairTest is Test {
         assertEq(pair.totalSupply(), 2000);
         assertEq(pair.balanceOf(address(pair)), 0);
     }
+
     function test_exit() public {
         giftSome();
-
+        addLiquidity(1000, 4000);
         assertEq(pair.balanceOf(address(user)), 1000);
+        removeLiquidity(1000);
 
-        (uint112 reserve0, uint112 reserve1,) = pair.getReserves();
-
+        (uint112 reserve0, uint112 reserve1, ) = pair.getReserves();
         assertEq(uint256(reserve0), 500);
         assertEq(uint256(reserve1), 2000);
 
@@ -132,14 +147,21 @@ contract PairTest is Test {
     //token0 in -> token1 out
     function test_swap0() public {
         setupSwap();
+        user.push(token0, 4 ether);
+        user.swap(0, 1 ether, address(callee1), "");
         
+        (uint112 reserve0, uint112 reserve1, ) = pair.getReserves();
+        console.log(reserve0, reserve1);
 
-        (uint112 reserve0, uint112 reserve1,) = pair.getReserves();
+
         assertEq(uint256(reserve0), 6 ether);
         assertEq(uint256(reserve1), 10 ether - 1.662497915624478906 ether);
 
         assertEq(token0.balanceOf(address(pair)), 6 ether);
-        assertEq(token1.balanceOf(address(pair)), 10 ether - 1.662497915624478906 ether);
+        assertEq(
+            token1.balanceOf(address(pair)),
+            10 ether - 1.662497915624478906 ether
+        );
 
         assertEq(token0.balanceOf(address(user)), 4 ether);
         assertEq(token1.balanceOf(address(user)), 1.662497915624478906 ether);
@@ -151,15 +173,20 @@ contract PairTest is Test {
         deal(address(token1), address(user), 1 ether);
         user.push(token1, 1 ether);
 
-
-        (uint112 reserve0, uint112 reserve1,) = pair.getReserves();
+        (uint112 reserve0, uint112 reserve1, ) = pair.getReserves();
         assertEq(uint256(reserve0), 5 ether - 0.045330544694007456 ether);
         assertEq(uint256(reserve1), 11 ether);
 
-        assertEq(token0.balanceOf(address(pair)), 5 ether - 0.045330544694007456 ether);
+        assertEq(
+            token0.balanceOf(address(pair)),
+            5 ether - 0.045330544694007456 ether
+        );
         assertEq(token1.balanceOf(address(pair)), 11 ether);
 
-        assertEq(token0.balanceOf(address(user)), 5 ether + 0.045330544694007456 ether);
+        assertEq(
+            token0.balanceOf(address(user)),
+            5 ether + 0.045330544694007456 ether
+        );
         assertEq(token1.balanceOf(address(user)), 0);
     }
 
